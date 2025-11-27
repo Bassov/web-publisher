@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Collage Maker</title>
+    <link rel="manifest" href="manifest.json">
+    <link rel="stylesheet" href="styles.css">
+    <meta name="theme-color" content="#1e1e1e">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+</head>
+
+<body>
+    <div id="app">
+        <header id="toolbar">
+            <div class="left">
+                <span class="title">Collage Maker</span>
+            </div>
+            <div class="center">
+                <button id="btn-add-image" title="Add Images">
+                    <img src="assets/icons/icon.svg" width="16" height="16" alt="+"> Add Images
+                </button>
+            </div>
+            <div class="right">
+                <button id="btn-shortcuts" title="Keyboard Shortcuts"
+                    style="background: transparent; border: 1px solid #555;">?</button>
+                <button id="btn-export">Export</button>
+            </div>
+        </header>
+
+        <div id="workspace">
+            <div id="viewport">
+                <!-- Pages will be rendered here -->
+            </div>
+        </div>
+
+        <aside id="sidebar">
+            <div class="panel" id="panel-properties">
+                <div class="panel-header">
+                    <h3>Properties</h3>
+                    <button id="btn-toggle-properties" class="btn-icon" title="Toggle Properties Panel">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <polyline points="9 18 15 12 9 6"></polyline>
+                        </svg>
+                    </button>
+                </div>
+                <div id="properties-content">
+                    <!-- Dynamic properties -->
+                </div>
+            </div>
+        </aside>
+    </div>
+
+    <!-- Media Library Panel (Bottom) -->
+    <div id="media-library" class="media-library"></div>
+
+    <!-- Shortcuts Modal -->
+    <div id="shortcuts-modal" class="modal hidden">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Keyboard Shortcuts</h3>
+                <button id="btn-close-modal" class="close-btn">&times;</button>
+            </div>
+            <div class="shortcuts-list">
+                <div class="shortcut-item">
+                    <div class="key-group">
+                        <span class="key">Ctrl</span> + <span class="key">Z</span>
+                    </div>
+                    <span class="action">Undo</span>
+                </div>
+                <div class="shortcut-item">
+                    <div class="key-group">
+                        <span class="key">Ctrl</span> + <span class="key">Shift</span> + <span class="key">Z</span>
+                    </div>
+                    <span class="action">Redo</span>
+                </div>
+                <div class="shortcut-item">
+                    <div class="key-group">
+                        <span class="key">Arrows</span>
+                    </div>
+                    <span class="action">Move Frame (1px)</span>
+                </div>
+                <div class="shortcut-item">
+                    <div class="key-group">
+                        <span class="key">Shift</span> + <span class="key">Arrows</span>
+                    </div>
+                    <span class="action">Move Frame (10px)</span>
+                </div>
+                <div class="shortcut-item">
+                    <div class="key-group">
+                        <span class="key">Delete</span>
+                    </div>
+                    <span class="action">Delete Frame</span>
+                </div>
+                <div class="shortcut-item">
+                    <div class="key-group">
+                        <span class="key">Space</span> + <span>Drag</span>
+                    </div>
+                    <span class="action">Pan Canvas</span>
+                </div>
+                <div class="shortcut-item">
+                    <div class="key-group">
+                        <span class="key">Double Click</span>
+                    </div>
+                    <span class="action">Edit Content (Pan/Zoom)</span>
+                </div>
+                <div class="shortcut-item">
+                    <div class="key-group">
+                        <span class="key">Esc</span>
+                    </div>
+                    <span class="action">Exit Edit Mode</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script type="module" src="src/app.js"></script>
+    <script type="module" src="src/ui/PropertiesPanel.js"></script>
+    <script type="module" src="src/ui/MediaLibrary.js"></script>
+    <script type="module" src="src/utils/Exporter.js"></script>
+</body>
+
+</html>
