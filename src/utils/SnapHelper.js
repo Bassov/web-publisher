@@ -3,6 +3,10 @@ export class SnapHelper {
         this.pageManager = pageManager;
         this.enabled = true;
         this.threshold = 10; // Pixels in screen space
+
+        // OPTIMIZATION: Cache for grid lines
+        this.gridCache = null;
+        this.cacheVersion = 0;
     }
 
     setEnabled(enabled) {
@@ -58,12 +62,23 @@ export class SnapHelper {
     }
 
     /**
-     * Get all vertical (X) and horizontal (Y) grid lines
+     * OPTIMIZATION: Invalidate grid cache when page settings change
      */
+    invalidateCache() {
+        this.cacheVersion++;
+        this.gridCache = null;
+    }
+
     /**
      * Get all vertical (X) and horizontal (Y) grid lines
+     * OPTIMIZATION: Cached to avoid recalculation during mousemove
      */
     getGridLines() {
+        // Return cached result if available
+        if (this.gridCache !== null) {
+            return this.gridCache;
+        }
+
         const xLines = new Set();
         const yLines = new Set();
 
@@ -121,6 +136,9 @@ export class SnapHelper {
             xLines: Array.from(xLines).sort((a, b) => a - b),
             yLines: Array.from(yLines).sort((a, b) => a - b)
         };
+
+        // Cache the result
+        this.gridCache = result;
 
         return result;
     }

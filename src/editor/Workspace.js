@@ -9,7 +9,8 @@ export class Workspace {
             y: 0,
             isDragging: false,
             lastX: 0,
-            lastY: 0
+            lastY: 0,
+            isZooming: false  // OPTIMIZATION: Track active zoom state
         };
 
         this.rafPending = false; // Throttle flag for requestAnimationFrame
@@ -78,32 +79,54 @@ export class Workspace {
     handleWheel(e) {
         e.preventDefault();
 
-        // Accumulate zoom delta instead of processing immediately
-        const ZOOM_SPEED = 0.001;
-        this.pendingZoomDelta = (this.pendingZoomDelta || 0) + e.deltaY;
+        // CRITICAL OPTIMIZATION: Mark as zooming to skip handle updates
+        this.state.isZooming = true;
 
-        // Store mouse position for zoom-to-point (use latest)
-        const rect = this.container.getBoundingClientRect();
-        this.pendingMouseX = e.clientX - rect.left;
-        this.pendingMouseY = e.clientY - rect.top;
+        // Clear existing zoom-end timer
+        if (this.zoomEndTimer) {
+            clearTimeout(this.zoomEndTimer);
+        }
+
+        // Set timer to mark zoom as ended after 200ms
+        this.zoomEndTimer = setTimeout(() => {
+            this.state.isZooming = false;
+            // Trigger handle update after zoom ends
+            if (this.onTransformChange) {
+                const viewportBounds = this.getViewportBounds();
+                this.onTransformChange(viewportBounds, true); // true = zoom ended
+            }
+        }, 200);
+
+        // Accumulate zoom delta from ALL events (don't skip any!)
+        const ZOOM_SPEED = 0.001;
+        this.pendingZoomDelta += e.deltaY;
+
+        // Store raw client coordinates (we'll calculate relative pos in RAF)
+        this.pendingClientX = e.clientX;
+        this.pendingClientY = e.clientY;
 
         // Throttle zoom application with RAF
         if (!this.rafPending) {
             this.rafPending = true;
             requestAnimationFrame(() => {
+                // OPTIMIZATION: Calculate rect only once per frame inside RAF
+                const rect = this.container.getBoundingClientRect();
+                const mouseX = this.pendingClientX - rect.left;
+                const mouseY = this.pendingClientY - rect.top;
+
                 // Apply accumulated zoom delta
                 const newScale = this.state.scale - this.pendingZoomDelta * ZOOM_SPEED;
                 const clampedScale = Math.min(Math.max(0.1, newScale), 5);
 
-                // World coordinates before zoom
-                const worldX = (this.pendingMouseX - this.state.x) / this.state.scale;
-                const worldY = (this.pendingMouseY - this.state.y) / this.state.scale;
+                // World coordinates before zoom (using latest mouse pos)
+                const worldX = (mouseX - this.state.x) / this.state.scale;
+                const worldY = (mouseY - this.state.y) / this.state.scale;
 
                 this.state.scale = clampedScale;
 
                 // Adjust translation to keep world point under mouse
-                this.state.x = this.pendingMouseX - worldX * this.state.scale;
-                this.state.y = this.pendingMouseY - worldY * this.state.scale;
+                this.state.x = mouseX - worldX * this.state.scale;
+                this.state.y = mouseY - worldY * this.state.scale;
 
                 this.updateTransform();
 
@@ -170,10 +193,28 @@ export class Workspace {
     updateTransform() {
         this.viewport.style.transform = `translate(${this.state.x}px, ${this.state.y}px) scale(${this.state.scale})`;
 
+        // OPTIMIZATION: Update grid line width to remain constant on screen (1px / scale)
+        // This ensures grid is visible even when zoomed out far
+        const lineWidth = Math.max(1, 1 / this.state.scale);
+        this.viewport.style.setProperty('--grid-line-width', `${lineWidth}px`);
+
         // Notify listeners of transform change (e.g., for updating frame handle scales)
         if (this.onTransformChange) {
-            this.onTransformChange();
+            // OPTIMIZATION: Don't calculate bounds here to avoid reflow.
+            // App.js calculates it only when needed (and skips during zoom).
+            this.onTransformChange(null);
         }
+    }
+
+    // Get viewport bounds in world coordinates (for culling)
+    getViewportBounds() {
+        const rect = this.container.getBoundingClientRect();
+        return {
+            left: (0 - this.state.x) / this.state.scale,
+            right: (rect.width - this.state.x) / this.state.scale,
+            top: (0 - this.state.y) / this.state.scale,
+            bottom: (rect.height - this.state.y) / this.state.scale
+        };
     }
 
     // Coordinate conversion

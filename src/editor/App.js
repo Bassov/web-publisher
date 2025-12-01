@@ -23,13 +23,25 @@ export class App {
 
         this.frames = [];
 
+        // Debounce helper
+        this.debounce = (func, wait) => {
+            let timeout;
+            return (...args) => {
+                clearTimeout(timeout);
+                timeout = setTimeout(() => func.apply(this, args), wait);
+            };
+        };
+
         // Set workspace callback to update frame handles on zoom/pan
-        this.workspace.onTransformChange = () => {
-            this.frames.forEach(frame => {
-                if (frame.handlesRendered || frame.contentHandlesRendered) {
-                    frame.updateHandleScale();
-                }
-            });
+        // CRITICAL OPTIMIZATION: Skip ALL updates during active zoom
+        this.workspace.onTransformChange = (viewportBounds, zoomEnded = false) => {
+            // If actively zooming, skip all updates for maximum performance
+            if (this.workspace.state.isZooming && !zoomEnded) {
+                return; // Skip completely during zoom
+            }
+
+            // Only update handles when zoom has ended
+            this.updateVisibleFrameHandles();
         };
 
         this.initDragDrop();
@@ -41,6 +53,31 @@ export class App {
 
         // Auto-fit all pages in viewport on startup
         this.workspace.fitToPages(this.pageManager);
+    }
+
+    // OPTIMIZATION: Check if frame is visible in viewport
+    isFrameInViewport(frame, bounds) {
+        const { x, y, width, height } = frame.state;
+        return !(x + width < bounds.left ||
+            x > bounds.right ||
+            y + height < bounds.top ||
+            y > bounds.bottom);
+    }
+
+    // OPTIMIZATION: Update handles only for visible frames
+    updateVisibleFrameHandles() {
+        // CRITICAL FIX: Pass workspace scale directly to avoid getComputedStyle()
+        const workspaceScale = this.workspace.state.scale;
+        const viewportBounds = this.workspace.getViewportBounds();
+
+        this.frames.forEach(frame => {
+            if (this.isFrameInViewport(frame, viewportBounds)) {
+                if (frame.handlesRendered || frame.contentHandlesRendered) {
+                    // Pass scale directly instead of letting frame calculate it
+                    frame.updateHandleScale(workspaceScale);
+                }
+            }
+        });
     }
 
     initPanelToggles() {
@@ -149,7 +186,7 @@ export class App {
         this.workspace.viewport.appendChild(frame.element);
 
         // Select the new frame
-        frame.select();
+        this.selectFrame(frame);
 
         // Remove from library
         if (this.mediaLibrary) {
@@ -244,71 +281,97 @@ export class App {
     }
 
     createFramesFromFiles(files, stateBefore) {
+        const imageFiles = files.filter(f => f.type.startsWith('image/'));
+        if (imageFiles.length === 0) return;
+
         // Auto-arrange in grid
-        const gridCols = Math.ceil(Math.sqrt(files.length));
+        const gridCols = Math.ceil(Math.sqrt(imageFiles.length));
         const spacing = 50;
         const baseSize = 300;
         const centerX = 0;
         const centerY = 0;
 
-        const imageFiles = files.filter(f => f.type.startsWith('image/'));
-        if (imageFiles.length === 0) return;
-
         let currentIndex = 0;
+        // OPTIMIZATION: Use DocumentFragment to batch DOM updates
+        const fragment = document.createDocumentFragment();
+        const newFrames = [];
 
-        const loadNextImage = () => {
-            if (currentIndex >= imageFiles.length) {
-                // All done, push history
-                if (stateBefore) {
-                    this.historyManager.pushExplicitState(stateBefore, 'add_images');
-                }
-                return;
+        const processNextBatch = () => {
+            // Process up to 5 images at a time to keep UI responsive but fast
+            const batchSize = 5;
+            const endIndex = Math.min(currentIndex + batchSize, imageFiles.length);
+
+            let loadedCount = 0;
+            const batchTotal = endIndex - currentIndex;
+
+            for (let i = currentIndex; i < endIndex; i++) {
+                const file = imageFiles[i];
+                const objectURL = URL.createObjectURL(file);
+                const img = new Image();
+
+                img.onload = () => {
+                    const aspect = img.width / img.height;
+                    let frameWidth, frameHeight;
+
+                    if (aspect > 1) {
+                        frameWidth = baseSize;
+                        frameHeight = baseSize / aspect;
+                    } else {
+                        frameHeight = baseSize;
+                        frameWidth = baseSize * aspect;
+                    }
+
+                    const row = Math.floor(i / gridCols);
+                    const col = i % gridCols;
+                    const x = centerX + (col * (baseSize + spacing)) - (gridCols * (baseSize + spacing) / 2);
+                    const y = centerY + (row * (baseSize + spacing));
+
+                    const frame = new Frame(x, y, frameWidth, frameHeight, objectURL, this);
+                    newFrames.push(frame);
+                    fragment.appendChild(frame.element);
+
+                    loadedCount++;
+                    checkBatchComplete();
+                };
+
+                img.onerror = () => {
+                    console.error('Failed to load image:', file.name);
+                    URL.revokeObjectURL(objectURL);
+                    loadedCount++;
+                    checkBatchComplete();
+                };
+
+                img.src = objectURL;
             }
 
-            const file = imageFiles[currentIndex];
-            const objectURL = URL.createObjectURL(file);
+            const checkBatchComplete = () => {
+                if (loadedCount === batchTotal) {
+                    // Batch done
+                    currentIndex += batchTotal;
 
-            const img = new Image();
-            img.onload = () => {
-                const aspect = img.width / img.height;
+                    // Append this batch to DOM in one go
+                    if (fragment.children.length > 0) {
+                        this.workspace.viewport.appendChild(fragment);
+                        // Add to frames array
+                        this.frames.push(...newFrames);
+                        // Clear temp arrays for next batch
+                        newFrames.length = 0;
+                    }
 
-                let frameWidth, frameHeight;
-                if (aspect > 1) {
-                    frameWidth = baseSize;
-                    frameHeight = baseSize / aspect;
-                } else {
-                    frameHeight = baseSize;
-                    frameWidth = baseSize * aspect;
+                    if (currentIndex < imageFiles.length) {
+                        // Schedule next batch
+                        requestAnimationFrame(processNextBatch);
+                    } else {
+                        // All done
+                        if (stateBefore) {
+                            this.historyManager.pushExplicitState(stateBefore, 'add_images');
+                        }
+                    }
                 }
-
-                const row = Math.floor(currentIndex / gridCols);
-                const col = currentIndex % gridCols;
-                const x = centerX + (col * (baseSize + spacing)) - (gridCols * (baseSize + spacing) / 2);
-                const y = centerY + (row * (baseSize + spacing));
-
-                const frame = new Frame(x, y, frameWidth, frameHeight, objectURL, this);
-                this.frames.push(frame);
-                this.workspace.viewport.appendChild(frame.element);
-
-                currentIndex++;
-
-                // Load next image after a good pause (200ms)
-                // This keeps UI responsive
-                setTimeout(loadNextImage, 200);
             };
-
-            img.onerror = () => {
-                console.error('Failed to load image:', file.name);
-                URL.revokeObjectURL(objectURL);
-                currentIndex++;
-                setTimeout(loadNextImage, 200);
-            };
-
-            img.src = objectURL;
         };
 
-        // Start loading
-        loadNextImage();
+        processNextBatch();
     }
 
     initFrameSelection() {
@@ -417,7 +480,7 @@ export class App {
             frame.updateContentTransform();
 
             if (data.isSelected) {
-                frame.select();
+                this.selectFrame(frame);
             }
 
             this.frames.push(frame);
@@ -425,8 +488,30 @@ export class App {
         });
     }
 
+    // OPTIMIZATION: O(1) Selection Logic
+    selectFrame(frame) {
+        // If already selected, do nothing
+        if (this.selectedFrame === frame) return;
+
+        // Deselect current if exists
+        if (this.selectedFrame) {
+            this.selectedFrame.deselect();
+        }
+
+        // Select new
+        this.selectedFrame = frame;
+        this.selectedFrame.select(); // Delegate to frame for visuals
+
+        // Update UI
+        this.propertiesPanel.setSelectedFrame(frame);
+    }
+
     deselectAllFrames() {
-        this.frames.forEach(f => f.deselect());
+        // OPTIMIZATION: Only deselect the active frame, don't iterate all
+        if (this.selectedFrame) {
+            this.selectedFrame.deselect();
+            this.selectedFrame = null;
+        }
         this.propertiesPanel.setSelectedFrame(null);
     }
 

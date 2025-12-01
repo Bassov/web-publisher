@@ -77,36 +77,45 @@ export class Frame {
             this.element.appendChild(handle);
         });
 
+        // OPTIMIZATION: Cache handle elements to avoid querySelectorAll
+        this.cachedHandles = Array.from(this.element.querySelectorAll('.handle'));
+
         // Apply initial scale
         this.updateHandleScale();
     }
 
-    updateHandleScale() {
-        // Get workspace scale to make handles maintain constant screen size
-        const viewport = this.element.parentElement;
-        if (!viewport) return;
+    updateHandleScale(workspaceScale) {
+        // CRITICAL FIX: Accept workspace scale as parameter to avoid expensive getComputedStyle()
+        // getComputedStyle() forces reflow and is VERY slow when called frequently
 
-        const style = window.getComputedStyle(viewport);
-        const matrix = new WebKitCSSMatrix(style.transform);
-        const workspaceScale = matrix.a || 1;
+        // Fallback: get scale from viewport if not provided (for backwards compatibility)
+        if (workspaceScale === undefined) {
+            const viewport = this.element.parentElement;
+            if (!viewport) return;
+            const style = window.getComputedStyle(viewport);
+            const matrix = new WebKitCSSMatrix(style.transform);
+            workspaceScale = matrix.a || 1;
+        }
 
         // Calculate inverse scale for handles
         const inverseScale = 1 / workspaceScale;
 
+        // OPTIMIZATION: Use cached handles instead of querySelectorAll
         // Update frame resize handles (blue ones)
-        const handles = this.element.querySelectorAll('.handle');
-        handles.forEach(handle => {
-            handle.style.transform = `scale(${inverseScale})`;
-            handle.style.transformOrigin = 'center';
-        });
+        if (this.cachedHandles) {
+            this.cachedHandles.forEach(handle => {
+                handle.style.transform = `scale(${inverseScale})`;
+                handle.style.transformOrigin = 'center';
+            });
+        }
 
         // Content handles (yellow ones) - use same scale as blue handles
-        // contentOverlay already has correct dimensions, handles just need to compensate workspace zoom
-        const contentHandles = this.element.querySelectorAll('.content-handle');
-        contentHandles.forEach(handle => {
-            handle.style.transform = `scale(${inverseScale})`;
-            handle.style.transformOrigin = 'center';
-        });
+        if (this.cachedContentHandles) {
+            this.cachedContentHandles.forEach(handle => {
+                handle.style.transform = `scale(${inverseScale})`;
+                handle.style.transformOrigin = 'center';
+            });
+        }
     }
 
     renderContentHandles() {
@@ -152,6 +161,9 @@ export class Frame {
             this.contentOverlay.appendChild(handle);
         });
 
+        // OPTIMIZATION: Cache content handle elements to avoid querySelectorAll
+        this.cachedContentHandles = Array.from(this.element.querySelectorAll('.content-handle'));
+
         // Apply initial scale immediately
         this.updateHandleScale();
     }
@@ -190,10 +202,12 @@ export class Frame {
         this.element.addEventListener('dblclick', (e) => this.enterContentEditMode(e));
 
         // Select on click (if not panned)
+        // Select on click (if not panned)
         this.element.addEventListener('click', (e) => {
             e.stopPropagation(); // Prevent App deselect
-            if (!this.state.isSelected) {
-                this.select();
+            // OPTIMIZATION: Delegate to App for O(1) selection
+            if (this.app) {
+                this.app.selectFrame(this);
             }
         });
 
@@ -536,6 +550,25 @@ export class Frame {
             anchorY = initial.y; // Top edge
         }
 
+        // Pre-calculate content offset from center for proportional resizing
+        let initialOffsetX = 0;
+        let initialOffsetY = 0;
+        const hasContent = this.content.naturalWidth && this.content.naturalHeight;
+
+        if (hasContent) {
+            const initialImgWidth = this.content.naturalWidth * this.state.contentScale;
+            const initialImgHeight = this.content.naturalHeight * this.state.contentScale;
+
+            const initialFrameCenterX = initial.width / 2;
+            const initialFrameCenterY = initial.height / 2;
+
+            const initialImgCenterX = this.state.contentX + initialImgWidth / 2;
+            const initialImgCenterY = this.state.contentY + initialImgHeight / 2;
+
+            initialOffsetX = initialImgCenterX - initialFrameCenterX;
+            initialOffsetY = initialImgCenterY - initialFrameCenterY;
+        }
+
         const onMove = (ev) => {
             const deltaX = (ev.clientX - startX) / scale;
             const deltaY = (ev.clientY - startY) / scale;
@@ -626,38 +659,20 @@ export class Frame {
             this.state.width = newWidth;
             this.state.height = newHeight;
             this.updateTransform();
-        };
 
-        const onUp = (ev) => {
-            this.element.releasePointerCapture(ev.pointerId);
-            this.element.removeEventListener('pointermove', onMove);
-            this.element.removeEventListener('pointerup', onUp);
-
-            // Proportionally adjust content position if image is loaded
-            if (this.content.naturalWidth && this.content.naturalHeight) {
-                // Calculate image dimensions BEFORE recalculating scale
-                const oldImgWidth = this.content.naturalWidth * this.state.contentScale;
-                const oldImgHeight = this.content.naturalHeight * this.state.contentScale;
-
-                // Calculate offset from center BEFORE resize
-                const oldCenterX = initial.width / 2;
-                const oldCenterY = initial.height / 2;
-                const oldImgCenterX = this.state.contentX + oldImgWidth / 2;
-                const oldImgCenterY = this.state.contentY + oldImgHeight / 2;
-                const offsetX = oldImgCenterX - oldCenterX;
-                const offsetY = oldImgCenterY - oldCenterY;
-
+            // REAL-TIME CONTENT ADJUSTMENT
+            if (hasContent) {
                 // Recalculate scale to maintain "cover" fit
                 const aspect = this.content.naturalWidth / this.content.naturalHeight;
-                const frameAspect = this.state.width / this.state.height;
+                const frameAspect = newWidth / newHeight;
 
                 let newScale;
                 if (aspect > frameAspect) {
                     // Image is wider - fit to height
-                    newScale = this.state.height / this.content.naturalHeight;
+                    newScale = newHeight / this.content.naturalHeight;
                 } else {
                     // Image is taller - fit to width
-                    newScale = this.state.width / this.content.naturalWidth;
+                    newScale = newWidth / this.content.naturalWidth;
                 }
 
                 this.state.contentScale = newScale;
@@ -667,19 +682,25 @@ export class Frame {
                 const newImgHeight = this.content.naturalHeight * newScale;
 
                 // Calculate new offset proportionally to size change
-                const scaleX = this.state.width / initial.width;
-                const scaleY = this.state.height / initial.height;
-                const newOffsetX = offsetX * scaleX;
-                const newOffsetY = offsetY * scaleY;
+                const scaleX = newWidth / initial.width;
+                const scaleY = newHeight / initial.height;
+                const newOffsetX = initialOffsetX * scaleX;
+                const newOffsetY = initialOffsetY * scaleY;
 
                 // Calculate new position to maintain proportional offset
-                const newCenterX = this.state.width / 2;
-                const newCenterY = this.state.height / 2;
+                const newCenterX = newWidth / 2;
+                const newCenterY = newHeight / 2;
                 this.state.contentX = (newCenterX + newOffsetX) - newImgWidth / 2;
                 this.state.contentY = (newCenterY + newOffsetY) - newImgHeight / 2;
 
                 this.updateContentTransform();
             }
+        };
+
+        const onUp = (ev) => {
+            this.element.releasePointerCapture(ev.pointerId);
+            this.element.removeEventListener('pointermove', onMove);
+            this.element.removeEventListener('pointerup', onUp);
 
             // Push state if size/pos changed
             if (this.state.width !== initial.width || this.state.height !== initial.height ||
@@ -1037,37 +1058,54 @@ export class Frame {
     select() {
         if (this.state.isSelected) return;
 
-        // Lazy init: render handles only on first select
+        this.state.isSelected = true;
+        this.element.classList.add('selected');
+
+        // Lazy init handles
         if (!this.handlesRendered) {
             this.renderHandles();
             this.handlesRendered = true;
         }
 
-        // Deselect all other frames first
-        if (this.app) {
-            this.app.frames.forEach(f => {
-                if (f !== this) f.deselect();
-            });
-            this.app.propertiesPanel.setSelectedFrame(this);
-        }
-
-        this.state.isSelected = true;
-        this.element.classList.add('selected');
         this.updateHandleVisibility();
     }
 
     deselect() {
+        if (!this.state.isSelected) return;
+
         this.state.isSelected = false;
         this.element.classList.remove('selected');
+
+        // Exit content edit mode if active
         if (this.state.mode === 'content-edit') {
             this.exitContentEditMode();
         }
-        this.updateHandleVisibility();
 
-        // Notify app if we were the selected frame
-        if (this.app && this.app.propertiesPanel.selectedFrame === this) {
-            this.app.propertiesPanel.setSelectedFrame(null);
+        // Remove handles to save memory/DOM
+        if (this.handlesContainer) {
+            this.handlesContainer.remove();
+            this.handlesContainer = null;
         }
+        // Note: We don't necessarily need to remove handles every time if we want to cache them,
+        // but removing them keeps DOM light. 
+        // For now, let's just hide them or remove them. 
+        // The previous logic removed them.
+
+        // Actually, renderHandles appends to this.element directly, not a container?
+        // Let's check renderHandles again. It appends children.
+        // If we want to remove them, we should remove the elements.
+        if (this.cachedHandles) {
+            this.cachedHandles.forEach(h => h.remove());
+            this.cachedHandles = null;
+        }
+        if (this.contentOverlay) {
+            this.contentOverlay.remove();
+            this.contentOverlay = null;
+        }
+
+        this.handlesRendered = false;
+        this.contentHandlesRendered = false;
+        this.cachedContentHandles = null;
     }
 
     updateTransform() {

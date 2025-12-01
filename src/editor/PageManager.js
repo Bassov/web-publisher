@@ -24,6 +24,10 @@ export class PageManager {
     updateSettings(newSettings) {
         if (this.app) this.app.pushState('update_project_settings');
         this.settings = { ...this.settings, ...newSettings };
+        // OPTIMIZATION: Invalidate grid cache when settings change
+        if (this.app && this.app.snapHelper) {
+            this.app.snapHelper.invalidateCache();
+        }
         this.render();
     }
 
@@ -31,6 +35,10 @@ export class PageManager {
         if (this.app) this.app.pushState('update_page_settings');
         if (!this.pageSettings[index]) this.pageSettings[index] = {};
         this.pageSettings[index] = { ...this.pageSettings[index], ...newSettings };
+        // OPTIMIZATION: Invalidate grid cache when page settings change
+        if (this.app && this.app.snapHelper) {
+            this.app.snapHelper.invalidateCache();
+        }
         this.render();
     }
 
@@ -481,8 +489,9 @@ export class PageManager {
             for (let c = 0; c < cols; c++) {
                 const cell = document.createElement('div');
                 cell.style.position = 'absolute';
-                // Make grid more visible: solid line, more prominent than before
-                cell.style.border = '1px solid rgba(0, 0, 0, 0.3)';
+                // Make grid more visible: use CSS variable for width to scale with zoom
+                // Also increased opacity from 0.3 to 0.5 for better visibility
+                cell.style.border = 'var(--grid-line-width, 1px) solid rgba(0, 0, 0, 0.5)';
                 cell.style.boxSizing = 'border-box';
 
                 const x = margin + (c * (cellWidth + gap));

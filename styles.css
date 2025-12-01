@@ -221,6 +221,11 @@ body.media-library-collapsed #app {
     left: 0;
     transform-origin: 0 0;
     /* Will be transformed by JS */
+
+    /* OPTIMIZATION: Performance hints for smooth zoom/pan */
+    will-change: transform;
+    transform: translateZ(0);
+    /* Force GPU layer */
 }
 
 #sidebar {
@@ -353,6 +358,10 @@ h3 {
     transition: box-shadow 0.2s ease, border-color 0.2s ease;
     z-index: 10;
     /* Frames above pages */
+
+    /* OPTIMIZATION: Isolate layout/style */
+    contain: layout style;
+    /* Removed will-change: transform to prevent excessive layer creation */
 }
 
 .frame:hover {
@@ -374,6 +383,9 @@ h3 {
     position: absolute;
     transform-origin: 0 0;
     pointer-events: none;
+
+    /* OPTIMIZATION: GPU acceleration for image transforms */
+    /* backface-visibility removed to save memory */
 }
 
 /* Drop Zone Feedback */
@@ -665,7 +677,9 @@ body.drag-over::after {
 .media-library-actions .btn-text:hover {
     color: var(--text-color);
     background: rgba(255, 255, 255, 0.05) !important;
-}/* Size Preset Grid */
+}
+
+/* Size Preset Grid */
 .size-preset-grid {
     display: grid;
     grid-template-columns: repeat(4, 1fr);
