@@ -222,8 +222,10 @@ export class Frame {
     }
 
     handleDragLeave(e) {
-        // Remove highlight when leaving
-        if (e.target === this.element) {
+        // Remove highlight when actually leaving the frame element
+        // Check if we're leaving to outside the frame (not just entering a child element)
+        const relatedTarget = e.relatedTarget;
+        if (!relatedTarget || !this.element.contains(relatedTarget)) {
             this.element.classList.remove('drag-over-swap');
         }
     }
@@ -346,7 +348,12 @@ export class Frame {
                             if (distance < minDistance) {
                                 minDistance = distance;
                                 // If cursor is to the left of center, insert before; otherwise after
-                                insertBefore = (ev.clientX < itemCenterX) ? item : item.nextSibling;
+                                let candidate = (ev.clientX < itemCenterX) ? item : item.nextSibling;
+                                // Skip placeholder if it's the nextSibling (can happen during drag)
+                                if (candidate && candidate.classList.contains('library-preview-placeholder')) {
+                                    candidate = candidate.nextSibling;
+                                }
+                                insertBefore = candidate;
                             }
                         });
 
@@ -361,14 +368,18 @@ export class Frame {
                             `;
                         }
 
-                        // Insert at calculated position
-                        if (insertBefore) {
+                        // Insert preview at calculated position
+                        if (insertBefore && insertBefore.parentNode === grid) {
                             grid.insertBefore(this._libraryPreview, insertBefore);
                         } else {
                             grid.appendChild(this._libraryPreview);
                         }
 
-                        // Store the insertion reference for later
+                        // Store the insertion reference for later (ensure it's stable and valid)
+                        // Make sure insertBefore is either null or a valid media-item (not the placeholder)
+                        if (insertBefore && insertBefore.classList && insertBefore.classList.contains('library-preview-placeholder')) {
+                            insertBefore = insertBefore.nextSibling;
+                        }
                         this._libraryInsertBefore = insertBefore;
 
                         // Scroll to show it if needed
