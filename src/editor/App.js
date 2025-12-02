@@ -45,11 +45,11 @@ export class App {
         };
 
         this.initDragDrop();
-        this.initAddImage();
+        // this.initAddImage(); // Handled by MediaLibrary
         this.initExport();
         this.initFrameSelection();
         this.initShortcutsModal();
-        this.initPanelToggles();
+        this.initContextualPanelToggles();
 
         // Auto-fit all pages in viewport on startup
         this.workspace.fitToPages(this.pageManager);
@@ -80,16 +80,59 @@ export class App {
         });
     }
 
-    initPanelToggles() {
-        // Sidebar (properties panel) toggle
-        const sidebarToggleBtn = document.getElementById('btn-toggle-properties');
-        if (sidebarToggleBtn) {
-            sidebarToggleBtn.addEventListener('click', () => {
-                const app = document.getElementById('app');
-                const isHidden = app.classList.toggle('settings-hidden');
-                sidebarToggleBtn.classList.toggle('rotated', isHidden);
-            });
+    initContextualPanelToggles() {
+        const sidebar = document.getElementById('sidebar');
+        let currentMode = null;
+
+        const closePanel = () => {
+            sidebar.classList.remove('visible');
+            this.propertiesPanel.hide();
+            currentMode = null;
+        };
+
+        const togglePanel = (mode) => {
+            if (currentMode === mode) {
+                closePanel();
+            } else {
+                // Open sidebar with new mode
+                sidebar.classList.add('visible');
+                if (mode === 'grid') {
+                    this.propertiesPanel.showGridSettings();
+                } else if (mode === 'page') {
+                    this.propertiesPanel.showPageSettings();
+                }
+                currentMode = mode;
+            }
+        };
+
+        // Grid settings button
+        const gridBtn = document.getElementById('btn-grid-settings');
+        if (gridBtn) {
+            gridBtn.addEventListener('click', () => togglePanel('grid'));
         }
+
+        // Page settings button
+        const pageBtn = document.getElementById('btn-page-settings');
+        if (pageBtn) {
+            pageBtn.addEventListener('click', () => togglePanel('page'));
+        }
+
+        // Close sidebar when clicking outside
+        document.addEventListener('click', (e) => {
+            if (!sidebar.contains(e.target) &&
+                !gridBtn?.contains(e.target) &&
+                !pageBtn?.contains(e.target) &&
+                sidebar.classList.contains('visible')) {
+                closePanel();
+            }
+        });
+
+        // Close sidebar on Escape key
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape' && sidebar.classList.contains('visible')) {
+                closePanel();
+            }
+        });
     }
 
     initDragDrop() {
@@ -258,27 +301,7 @@ export class App {
         reader.readAsDataURL(file);
     }
 
-    initAddImage() {
-        const btn = document.getElementById('btn-add-image');
-        if (!btn) {
-            console.error('Add Image button not found!');
-            return;
-        }
-
-        btn.addEventListener('click', () => {
-            const input = document.createElement('input');
-            input.type = 'file';
-            input.accept = 'image/*';
-            input.multiple = true;
-
-            input.onchange = (e) => {
-                const files = Array.from(e.target.files);
-                this.handleFiles(files); // Call the general handleFiles
-            };
-
-            input.click();
-        });
-    }
+    // initAddImage removed - handled by MediaLibrary
 
     createFramesFromFiles(files, stateBefore) {
         const imageFiles = files.filter(f => f.type.startsWith('image/'));

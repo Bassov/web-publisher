@@ -5,6 +5,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Collage Maker</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
     <link rel="manifest" href="manifest.json">
     <link rel="stylesheet" href="styles.css">
     <meta name="theme-color" content="#1e1e1e">
@@ -14,21 +17,7 @@
 
 <body>
     <div id="app">
-        <header id="toolbar">
-            <div class="left">
-                <span class="title">Collage Maker</span>
-            </div>
-            <div class="center">
-                <button id="btn-add-image" title="Add Images">
-                    <img src="assets/icons/icon.svg" width="16" height="16" alt="+"> Add Images
-                </button>
-            </div>
-            <div class="right">
-                <button id="btn-shortcuts" title="Keyboard Shortcuts"
-                    style="background: transparent; border: 1px solid #555;">?</button>
-                <button id="btn-export">Export</button>
-            </div>
-        </header>
+        <!-- Top toolbar removed - moved to bottom -->
 
         <div id="workspace">
             <div id="viewport">
@@ -36,17 +25,9 @@
             </div>
         </div>
 
+        <!-- Contextual Sidebar (Hidden by default) -->
         <aside id="sidebar">
             <div class="panel" id="panel-properties">
-                <div class="panel-header">
-                    <h3>Properties</h3>
-                    <button id="btn-toggle-properties" class="btn-icon" title="Toggle Properties Panel">
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                            stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                            <polyline points="9 18 15 12 9 6"></polyline>
-                        </svg>
-                    </button>
-                </div>
                 <div id="properties-content">
                     <!-- Dynamic properties -->
                 </div>
@@ -54,7 +35,7 @@
         </aside>
     </div>
 
-    <!-- Media Library Panel (Bottom) -->
+    <!-- Media Library Panel (Bottom) with integrated toolbar -->
     <div id="media-library" class="media-library"></div>
 
     <!-- Shortcuts Modal -->

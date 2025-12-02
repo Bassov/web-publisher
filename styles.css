@@ -1,19 +1,45 @@
 :root {
-    --bg-color: #1e1e1e;
-    --panel-bg: #252526;
-    --text-color: #cccccc;
-    --accent-color: #007acc;
-    --border-color: #3e3e42;
+    /* Deep Dark Theme (High Contrast) */
+    --bg-color: #000000;
+    /* Pure black for maximum contrast */
+    --panel-bg: rgba(35, 35, 35, 0.85);
+    /* Lighter, more distinct panel bg */
+    --panel-border: 1px solid rgba(255, 255, 255, 0.15);
+    /* Stronger border */
+
+    --text-primary: #ffffff;
+    --text-secondary: #a1a1aa;
+    /* Zinc-400 */
+    --text-tertiary: #52525b;
+
+    --accent-color: #3b82f6;
+    /* Brighter Blue */
+    --accent-hover: #2563eb;
+    --danger-color: #ef4444;
+
+    --border-radius: 12px;
+    /* Slightly rounder for modern feel */
+    --border-radius-sm: 6px;
+
     --header-height: 48px;
     --sidebar-width: 280px;
     --sidebar-collapsed-width: 40px;
-    --media-panel-height: 150px;
+    --media-panel-height: 180px;
+
+    --glass-blur: blur(16px);
+    /* Stronger blur */
+    --shadow-lg: 0 20px 25px -5px rgba(0, 0, 0, 0.5), 0 8px 10px -6px rgba(0, 0, 0, 0.5);
+    /* Deeper shadow */
+    --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.3);
+
+    --font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
 }
 
 * {
     box-sizing: border-box;
     user-select: none;
-    /* Prevent selection for app-like feel */
+    -webkit-font-smoothing: antialiased;
+    /* Crisp text */
 }
 
 /* Media Library Drag Over State */
@@ -106,55 +132,49 @@
 
 body {
     margin: 0;
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    font-family: var(--font-family);
     background-color: var(--bg-color);
-    color: var(--text-color);
+    color: var(--text-primary);
     overflow: hidden;
-    /* Prevent body scroll */
     height: 100vh;
     width: 100vw;
+    font-size: 13px;
+    /* Professional tool size */
+    line-height: 1.5;
 }
 
 #app {
-    display: grid;
-    grid-template-columns: 1fr var(--sidebar-width);
-    grid-template-rows: 0 1fr;
-    /* Remove header row */
-    height: calc(100vh - var(--media-panel-height));
-    /* Leave space for media library */
-    transition: grid-template-columns 0.3s ease, height 0.3s ease;
-}
-
-/* Media library collapsed: app takes full height */
-body.media-library-collapsed #app {
+    position: relative;
+    width: 100vw;
     height: 100vh;
+    overflow: hidden;
+    background-color: var(--bg-color);
+    /* No more grid - panels float */
 }
 
-#app.settings-hidden {
-    grid-template-columns: 1fr var(--sidebar-collapsed-width);
+/* Workspace takes full screen now - no top toolbar */
+#workspace {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    /* Pan/Zoom handles inner content */
+    z-index: 1;
+    /* Lowest level */
+
+    /* Dot Grid Background */
+    background-image: radial-gradient(rgba(255, 255, 255, 0.1) 1px, transparent 1px);
+    background-size: 24px 24px;
 }
 
-#toolbar {
-    display: none;
-    /* Hide old toolbar */
-}
+/* Top Toolbar removed - functionality moved to bottom */
 
-/* ... existing styles ... */
-
-.media-library-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 4px 12px;
-    height: 36px;
-    border-bottom: 1px solid var(--border-color);
-    background: var(--bg-color);
-}
-
-.media-library-actions {
-    display: flex;
-    align-items: center;
-    gap: 8px;
+#toolbar .title {
+    font-weight: 600;
+    color: var(--text-primary);
+    font-size: 14px;
 }
 
 .media-library-actions.left {
@@ -172,24 +192,33 @@ body.media-library-collapsed #app {
     margin: 0 8px;
 }
 
-.btn-icon {
+/* Old button styles removed - updated styles are defined below at line 622 */
+
+/* Secondary/Ghost Button (e.g. Add Images) */
+#btn-add-image {
     background: transparent;
-    border: none;
-    color: #888;
+    color: var(--text-primary);
+    border: 1px solid var(--panel-border);
+    padding: 7px 14px;
+    border-radius: 999px;
+    font-weight: 500;
+    font-size: 13px;
     cursor: pointer;
-    padding: 4px;
-    border-radius: 4px;
+    transition: all 0.2s ease;
     display: flex;
     align-items: center;
-    justify-content: center;
-    width: 24px;
-    height: 24px;
+    gap: 8px;
 }
 
-.btn-icon:hover,
-.btn-icon.active {
-    color: var(--text-color);
-    background: rgba(255, 255, 255, 0.1);
+#btn-add-image:hover {
+    background: rgba(255, 255, 255, 0.05);
+    border-color: var(--text-secondary);
+}
+
+#btn-add-image img {
+    filter: invert(1);
+    /* Make black icon white if needed, or use SVG */
+    opacity: 0.8;
 }
 
 .btn-icon svg {
@@ -228,48 +257,105 @@ body.media-library-collapsed #app {
     /* Force GPU layer */
 }
 
+/* Contextual Sidebar (Hidden by default, appears on demand) */
 #sidebar {
-    grid-column: 2;
-    grid-row: 2;
-    background-color: var(--panel-bg);
-    border-left: 1px solid var(--border-color);
-    padding: 0;
-    overflow-y: auto;
-    transition: all 0.3s ease;
+    position: absolute;
+    top: 16px;
+    right: 16px;
+    bottom: calc(16px + var(--media-panel-height) + 16px);
+    /* Stop above media library */
+    width: var(--sidebar-width);
+    background: var(--panel-bg);
+    backdrop-filter: var(--glass-blur);
+    -webkit-backdrop-filter: var(--glass-blur);
+    border: var(--panel-border);
+    border-radius: var(--border-radius);
+    box-shadow: var(--shadow-lg);
+    z-index: 100;
+    transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.3s ease;
+    display: flex;
+    flex-direction: column;
+
+    /* Hidden by default */
+    transform: translateX(calc(100% + 32px));
+    opacity: 0;
+    pointer-events: none;
 }
 
-#app.settings-hidden #sidebar {
+#sidebar.visible {
+    transform: translateX(0);
+    opacity: 1;
+    pointer-events: auto;
+}
+
+/* Floating Media Library (Bottom Panel) */
+.media-library {
+    position: fixed;
+    /* Changed from absolute to fixed */
+    left: 16px;
+    right: 16px;
+    bottom: 16px;
+    height: var(--media-panel-height);
+    background: var(--panel-bg);
+    backdrop-filter: var(--glass-blur);
+    -webkit-backdrop-filter: var(--glass-blur);
+    border: var(--panel-border);
+    border-radius: var(--border-radius);
+    box-shadow: var(--shadow-lg);
+    z-index: 100;
+    display: flex;
+    flex-direction: column;
     overflow: hidden;
 }
 
-#app.settings-hidden #sidebar .panel-header h3 {
-    display: none;
+@keyframes slideUp {
+    from {
+        transform: translateY(20px);
+        opacity: 0;
+    }
+
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
 }
 
-#app.settings-hidden #sidebar #properties-content {
-    display: none;
+#sidebar {
+    animation: slideInRight 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
+.media-library {
+    animation: slideUp 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+body.media-library-collapsed .media-library {
+    transform: translateY(calc(100% + 20px));
+    /* Slide down only */
+}
+
+/* Panel Header removed from Sidebar, kept for reference if needed elsewhere */
 .panel-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 12px 16px;
-    border-bottom: 1px solid var(--border-color);
-    background: var(--bg-color);
-}
-
-#app.settings-hidden .panel-header {
-    justify-content: center;
-    padding: 12px 8px;
-}
-
-.panel-header h3 {
-    margin: 0;
+    display: none;
 }
 
 #properties-content {
-    padding: 16px;
+    padding: 20px;
+    /* Increased padding for better spacing */
+    overflow-y: auto;
+    height: 100%;
+}
+
+/* Ensure inputs don't overflow */
+.panel-section {
+    margin-bottom: 24px;
+    width: 100%;
+}
+
+.panel-section input,
+.panel-section select {
+    box-sizing: border-box;
+    /* Explicitly set */
+    max-width: 100%;
 }
 
 .panel-section {
@@ -278,21 +364,35 @@ body.media-library-collapsed #app {
 
 .panel-section label {
     display: block;
-    margin-top: 12px;
-    margin-bottom: 4px;
-    font-size: 12px;
-    color: #aaa;
+    margin-top: 16px;
+    margin-bottom: 6px;
+    font-size: 11px;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--text-secondary);
 }
 
 .panel-section input[type="number"],
 .panel-section input[type="text"],
 .panel-section select {
     width: 100%;
-    padding: 6px 8px;
-    background-color: var(--bg-color);
-    border: 1px solid var(--border-color);
-    color: var(--text-color);
-    border-radius: 3px;
+    padding: 8px 12px;
+    background-color: rgba(0, 0, 0, 0.3);
+    border: 1px solid transparent;
+    color: var(--text-primary);
+    border-radius: var(--border-radius-sm);
+    font-family: var(--font-family);
+    font-size: 13px;
+    transition: all 0.2s ease;
+}
+
+.panel-section input:focus,
+.panel-section select:focus {
+    outline: none;
+    border-color: var(--accent-color);
+    background-color: rgba(0, 0, 0, 0.5);
+    box-shadow: 0 0 0 2px rgba(0, 112, 243, 0.2);
 }
 
 .panel-section input[type="checkbox"] {
@@ -373,10 +473,51 @@ h3 {
 
 .frame.selected {
     outline: 2px solid var(--accent-color);
-    box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.5);
-    /* Contrast ring */
-    z-index: 50;
-    /* Selected frames on top */
+    z-index: 10;
+    /* Bring to front */
+    box-shadow: 0 0 20px rgba(0, 112, 243, 0.3);
+    /* Glow effect */
+}
+
+.handle {
+    background-color: var(--accent-color) !important;
+    /* Blue fill */
+    border: 2px solid white !important;
+    /* White border */
+    border-radius: 2px !important;
+    /* Slightly rounded square */
+    width: 14px !important;
+    /* Restored to larger size */
+    height: 14px !important;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+    transition: transform 0.1s ease;
+    position: absolute;
+    /* Ensure positioning context */
+
+    /* Use CSS variable for scale, default to 1 */
+    transform: scale(var(--handle-scale, 1));
+    transform-origin: center;
+}
+
+/* Invisible hit area for easier grabbing */
+.handle::after {
+    content: '';
+    position: absolute;
+    top: -8px;
+    left: -8px;
+    right: -8px;
+    bottom: -8px;
+    /* 14px + 16px = 30px hit area */
+    background: transparent;
+    border-radius: 50%;
+}
+
+.handle:hover {
+    /* Multiply the base scale by 1.2 for the pop effect */
+    transform: scale(calc(var(--handle-scale, 1) * 1.2)) !important;
+    background-color: var(--accent-hover) !important;
+    z-index: 100;
+    /* Ensure hover state is on top */
 }
 
 .frame img {
@@ -432,6 +573,128 @@ body.drag-over::after {
     padding: 20px;
 }
 
+.media-library-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 6px 16px;
+    /* Reduced padding */
+    height: 32px;
+    /* Reduced from 50px to 32px */
+    border-bottom: var(--panel-border);
+    background: var(--panel-bg);
+    backdrop-filter: var(--glass-blur);
+    -webkit-backdrop-filter: var(--glass-blur);
+}
+
+.media-library-actions {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    /* Increased gap for toolbar spacing */
+}
+
+.media-library-actions.left {
+    gap: 12px;
+}
+
+.media-library-actions.right {
+    gap: 8px;
+}
+
+.image-count {
+    font-size: 11px;
+    color: var(--text-secondary);
+    font-weight: 500;
+    margin-left: 8px;
+    padding-left: 12px;
+    border-left: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.btn-icon {
+    background: transparent;
+    border: none;
+    /* Removed border */
+    color: var(--text-primary);
+    /* Changed from text-secondary for better visibility */
+    cursor: pointer;
+    padding: 8px;
+    border-radius: 8px;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13px;
+    font-weight: 500;
+}
+
+.btn-icon svg {
+    stroke: currentColor;
+    /* Ensure icon inherits button color */
+}
+
+.btn-icon:hover {
+    background: rgba(255, 255, 255, 0.1);
+    /* border-color: rgba(255, 255, 255, 0.2); */
+    color: white;
+    /* Even brighter on hover */
+}
+
+.btn-icon-small {
+    background: transparent;
+    border: none;
+    color: var(--text-secondary);
+    cursor: pointer;
+    padding: 4px;
+    margin-left: 4px;
+    border-radius: 4px;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.btn-icon-small:hover {
+    background: rgba(255, 255, 255, 0.1);
+    color: var(--text-primary);
+}
+
+.btn-icon-accent {
+    background: var(--accent-color);
+    border: none;
+    color: white;
+    cursor: pointer;
+    padding: 4px;
+    /* Further reduced from 6px */
+    border-radius: 4px;
+    /* Further reduced */
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.btn-icon-accent:hover {
+    background: var(--accent-hover);
+    box-shadow: 0 0 12px rgba(59, 130, 246, 0.5);
+    transform: translateY(-1px);
+}
+
+.btn-text-small {
+    background: transparent;
+    border: none;
+    color: var(--text-secondary);
+    font-size: 11px;
+    padding: 0;
+    margin-left: 8px;
+    cursor: pointer;
+    transition: color 0.2s ease;
+}
+
+.btn-text-small:hover {
+    color: var(--text-primary);
+}
+
 .modal-header {
     display: flex;
     justify-content: space-between;
@@ -475,29 +738,7 @@ body.drag-over::after {
 }
 
 /* Media Library Panel */
-.media-library {
-    position: fixed;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    /* Full width */
-    height: var(--media-panel-height);
-    background: var(--panel-bg);
-    border-top: 1px solid var(--border-color);
-    display: flex;
-    flex-direction: column;
-    z-index: 100;
-    transition: height 0.3s ease;
-}
-
-.media-library.collapsed {
-    height: 36px;
-    /* Only header visible */
-}
-
-.media-library.collapsed .media-library-grid {
-    display: none;
-}
+/* Duplicate removed - media library styles are defined above at line 337 */
 
 /* Media Library Header styles are now defined at the top of the file with the new layout */
 

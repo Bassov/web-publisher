@@ -10,21 +10,49 @@ export class MediaLibrary {
     }
 
     init() {
-        // Create UI structure
+        // Create UI structure with integrated toolbar
         this.container.innerHTML = `
             <div class="media-library-header">
                 <div class="media-library-actions left">
-                    <button id="btn-upload" class="btn-primary small">Upload</button>
-                    <button id="btn-clear-library" class="btn-text">Clear All</button>
-                    <span class="image-count" style="margin-left: 8px; border-left: 1px solid #333; padding-left: 8px;">0 images</span>
+                    <button id="btn-add-image" class="btn-icon" title="Add Images">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                            <circle cx="8.5" cy="8.5" r="1.5"></circle>
+                            <polyline points="21 15 16 10 5 21"></polyline>
+                        </svg>
+                    </button>
+                    <span class="image-count">0 images</span>
+                    <button id="btn-clear-library" class="btn-icon-small" title="Clear All">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <polyline points="3 6 5 6 21 6"></polyline>
+                            <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                        </svg>
+                    </button>
                     <input type="file" id="media-upload-input" multiple accept="image/*" style="display: none;">
                 </div>
                 <div class="media-library-actions right">
-                    <button id="btn-export-lib" class="btn-text">Export</button>
-                    <button id="btn-help-lib" class="btn-icon" title="Shortcuts">?</button>
-                    <button id="btn-toggle-media" class="btn-icon" title="Toggle Media Library">
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                            <polyline points="6 9 12 15 18 9"></polyline>
+                    <button id="btn-grid-settings" class="btn-icon" title="Grid Settings">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <rect x="3" y="3" width="7" height="7"></rect>
+                            <rect x="14" y="3" width="7" height="7"></rect>
+                            <rect x="3" y="14" width="7" height="7"></rect>
+                            <rect x="14" y="14" width="7" height="7"></rect>
+                        </svg>
+                    </button>
+                    <button id="btn-page-settings" class="btn-icon" title="Page Settings">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <rect x="4" y="2" width="16" height="20" rx="2"></rect>
+                            <line x1="8" y1="7" x2="16" y2="7"></line>
+                            <line x1="8" y1="11" x2="16" y2="11"></line>
+                            <line x1="8" y1="15" x2="12" y2="15"></line>
+                        </svg>
+                    </button>
+                    <button id="btn-shortcuts" class="btn-icon" title="Keyboard Shortcuts">?</button>
+                    <button id="btn-export" class="btn-icon-accent" title="Export">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                            <polyline points="7 10 12 15 17 10"></polyline>
+                            <line x1="12" y1="15" x2="12" y2="3"></line>
                         </svg>
                     </button>
                 </div>
@@ -48,25 +76,19 @@ export class MediaLibrary {
         // Event listeners
         document.getElementById('btn-clear-library').addEventListener('click', () => this.clearAll());
 
-        document.getElementById('btn-upload').addEventListener('click', () => {
-            this.fileInput.click();
-        });
+        // Connect global "Add Images" button to this file input
+        const globalAddBtn = document.getElementById('btn-add-image');
+        if (globalAddBtn) {
+            globalAddBtn.addEventListener('click', () => {
+                this.fileInput.click();
+            });
+        }
 
         this.fileInput.addEventListener('change', (e) => {
             if (e.target.files.length > 0) {
                 this.addFiles(e.target.files);
                 this.fileInput.value = '';
             }
-        });
-
-        // Media Library toggle (collapse/expand itself)
-        const toggleMediaBtn = document.getElementById('btn-toggle-media');
-        toggleMediaBtn.addEventListener('click', () => {
-            const container = this.container;
-            const isCollapsed = container.classList.toggle('collapsed');
-            toggleMediaBtn.classList.toggle('rotated', isCollapsed);
-            // Add body class for CSS targeting
-            document.body.classList.toggle('media-library-collapsed', isCollapsed);
         });
 
         // Horizontal scroll with mouse wheel

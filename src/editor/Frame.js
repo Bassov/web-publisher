@@ -59,8 +59,8 @@ export class Frame {
             const handle = document.createElement('div');
             handle.className = `handle ${pos}`;
             handle.style.position = 'absolute';
-            handle.style.width = '16px';
-            handle.style.height = '16px';
+            handle.style.width = '14px';
+            handle.style.height = '14px';
             handle.style.backgroundColor = 'var(--accent-color)';
             handle.style.border = '2px solid white';
             handle.style.zIndex = '10';
@@ -68,10 +68,14 @@ export class Frame {
             handle.style.cursor = `${pos}-resize`;
             handle.style.borderRadius = '2px';
 
-            if (pos.includes('n')) handle.style.top = '-8px';
-            if (pos.includes('s')) handle.style.bottom = '-8px';
-            if (pos.includes('w')) handle.style.left = '-8px';
-            if (pos.includes('e')) handle.style.right = '-8px';
+            // Use CSS variable for scale
+            handle.style.transform = 'scale(var(--handle-scale, 1))';
+            handle.style.transformOrigin = 'center';
+
+            if (pos.includes('n')) handle.style.top = '-7px';
+            if (pos.includes('s')) handle.style.bottom = '-7px';
+            if (pos.includes('w')) handle.style.left = '-7px';
+            if (pos.includes('e')) handle.style.right = '-7px';
 
             handle.dataset.handle = pos;
             this.element.appendChild(handle);
@@ -104,16 +108,15 @@ export class Frame {
         // Update frame resize handles (blue ones)
         if (this.cachedHandles) {
             this.cachedHandles.forEach(handle => {
-                handle.style.transform = `scale(${inverseScale})`;
-                handle.style.transformOrigin = 'center';
+                handle.style.setProperty('--handle-scale', inverseScale);
+                // Transform is now handled in CSS using the variable
             });
         }
 
         // Content handles (yellow ones) - use same scale as blue handles
         if (this.cachedContentHandles) {
             this.cachedContentHandles.forEach(handle => {
-                handle.style.transform = `scale(${inverseScale})`;
-                handle.style.transformOrigin = 'center';
+                handle.style.setProperty('--handle-scale', inverseScale);
             });
         }
     }
@@ -136,8 +139,8 @@ export class Frame {
             const handle = document.createElement('div');
             handle.className = `content-handle ${pos}`;
             handle.style.position = 'absolute';
-            handle.style.width = '12.8px'; // 16px / 1.25
-            handle.style.height = '12.8px'; // 16px / 1.25
+            handle.style.width = '14px';
+            handle.style.height = '14px';
             handle.style.backgroundColor = '#ffd700';
             handle.style.border = '2px solid white'; // Match resize handle border
             handle.style.pointerEvents = 'auto'; // Enable interaction
@@ -145,10 +148,14 @@ export class Frame {
             handle.style.zIndex = '6';
             handle.style.borderRadius = '2px'; // Match resize handle style
 
-            if (pos.includes('n')) handle.style.top = '-6.4px'; // Half of size
-            if (pos.includes('s')) handle.style.bottom = '-6.4px';
-            if (pos.includes('w')) handle.style.left = '-6.4px';
-            if (pos.includes('e')) handle.style.right = '-6.4px';
+            // Use CSS variable for scale
+            handle.style.transform = 'scale(var(--handle-scale, 1))';
+            handle.style.transformOrigin = 'center';
+
+            if (pos.includes('n')) handle.style.top = '-7px'; // Half of size
+            if (pos.includes('s')) handle.style.bottom = '-7px';
+            if (pos.includes('w')) handle.style.left = '-7px';
+            if (pos.includes('e')) handle.style.right = '-7px';
 
             handle.dataset.handle = pos;
 

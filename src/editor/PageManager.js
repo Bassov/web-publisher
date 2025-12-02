@@ -430,7 +430,9 @@ export class PageManager {
         settingsBtn.onclick = (e) => {
             e.stopPropagation();
             if (this.app && this.app.propertiesPanel) {
-                this.app.propertiesPanel.selectPage(index);
+                const sidebar = document.getElementById('sidebar');
+                sidebar.classList.add('visible');
+                this.app.propertiesPanel.showPageSettings(index);
             }
         };
 
