@@ -118,7 +118,12 @@ App (src/editor/App.js) - Main controller, state management
 - Iterates frames, clips to page bounds
 - Draws images with transforms (pan/zoom)
 - Outputs JPEG blobs (quality: 0.95)
-- Auto-downloads: `page_1.jpg`, `page_2.jpg`, etc.
+
+**Features**:
+- **File System Access API**: Direct saving to user-selected folders (Chrome/Edge)
+- **Smart Fallback**: Standard download for unsupported browsers or restricted folders (Downloads)
+- **Custom Filename Prefix**: User-defined naming (e.g., "my_trip_1.jpg")
+- **Custom Export Modal**: Modern UI for configuring export options
 
 **Multi-page frames**: Frames spanning pages render on each page they intersect.
 
@@ -225,6 +230,22 @@ workspace.addEventListener('drop', (e) => {
 - **CSS transforms**: GPU-accelerated via `transform: translate() scale()`
 - **Pointer capture**: Direct events during drag (no event bubbling)
 - **Visual states**: CSS classes instead of inline styles
+- **Interaction Optimization**:
+  - Cached scale calculation to prevent layout thrashing (`getComputedStyle`)
+  - `will-change: transform` hints for browser compositing
+- **State Serialization**: Optimized shallow copying in `HistoryManager` to eliminate input lag
+
+## UI Architecture
+
+### Adaptive Layouts
+- **Dynamic Sidebar**: Height adapts to content with min/max constraints
+- **Smart Viewport**: `fitToPages` logic accounts for UI panels (offsets center) and coordinate systems
+- **Responsive Panels**: Glassmorphism effects with backdrop-filter
+
+### Custom Modals
+- **Architecture**: HTML/CSS overlay system (no native `alert`/`prompt`)
+- **Components**: Export Dialog, Delete Confirmation
+- **Features**: Focus management, click-outside-to-close, keyboard accessibility
 
 ## Code Patterns
 
@@ -298,7 +319,9 @@ const corners = [
 - Canvas 2D API
 - Web Workers
 - Drag and Drop API
+
 - File API
+- File System Access API (Optional, for direct saving)
 
 **Not used**: No polyfills, transpilers, or legacy browser support.
 

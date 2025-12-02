@@ -229,17 +229,13 @@ export class App {
         this.workspace.viewport.appendChild(frame.element);
 
         // Remove from Media Library
-        if (data.id && this.mediaLibrary) {
+        // Fix: Check for undefined because id 0 is falsy
+        if (data.id !== undefined && this.mediaLibrary) {
             this.mediaLibrary.removeImage(data.id);
         }
 
         // Select the new frame
         this.selectFrame(frame);
-
-        // Remove from library
-        if (this.mediaLibrary) {
-            this.mediaLibrary.removeImage(data.id);
-        }
 
         // Push history
         if (stateBefore) {
