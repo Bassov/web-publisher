@@ -105,8 +105,10 @@ export class HistoryManager {
         });
 
         // Serialize Page Settings
-        const settings = JSON.parse(JSON.stringify(this.app.pageManager.settings));
-        const pageSettings = JSON.parse(JSON.stringify(this.app.pageManager.pageSettings));
+        // OPTIMIZATION: Use shallow copy instead of JSON.parse/stringify for performance
+        const settings = { ...this.app.pageManager.settings };
+        // Deep copy pageSettings array of objects
+        const pageSettings = this.app.pageManager.pageSettings.map(p => ({ ...p }));
 
         return {
             frames,

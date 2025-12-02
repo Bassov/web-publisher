@@ -228,6 +228,11 @@ export class App {
         this.frames.push(frame);
         this.workspace.viewport.appendChild(frame.element);
 
+        // Remove from Media Library
+        if (data.id && this.mediaLibrary) {
+            this.mediaLibrary.removeImage(data.id);
+        }
+
         // Select the new frame
         this.selectFrame(frame);
 
@@ -554,8 +559,71 @@ export class App {
             return;
         }
 
-        btn.addEventListener('click', async () => {
-            console.log('Export button clicked');
+        // Get modal elements
+        const modal = document.getElementById('export-modal');
+        const closeBtn = document.getElementById('btn-close-export-modal');
+        const cancelBtn = document.getElementById('btn-cancel-export');
+        const confirmBtn = document.getElementById('btn-confirm-export');
+        const chooseFolderBtn = document.getElementById('btn-choose-folder');
+        const prefixInput = document.getElementById('export-prefix');
+        const pathInput = document.getElementById('export-path');
+
+        // Store selected directory handle
+        let selectedDirHandle = null;
+
+        // Open modal on Export button click
+        btn.addEventListener('click', () => {
+            modal.classList.remove('hidden');
+            prefixInput.focus();
+            prefixInput.select();
+        });
+
+        // Close modal handlers
+        const closeModal = () => {
+            modal.classList.add('hidden');
+            selectedDirHandle = null;
+            pathInput.value = 'Downloads';
+        };
+
+        closeBtn.addEventListener('click', closeModal);
+        cancelBtn.addEventListener('click', closeModal);
+
+        // Close on click outside
+        modal.addEventListener('click', (e) => {
+            if (e.target === modal) {
+                closeModal();
+            }
+        });
+
+        // Choose folder button
+        chooseFolderBtn.addEventListener('click', async () => {
+            if ('showDirectoryPicker' in window) {
+                try {
+                    const dirHandle = await window.showDirectoryPicker();
+
+                    // Check if user selected Downloads folder (restricted)
+                    if (dirHandle.name.toLowerCase() === 'downloads' ||
+                        dirHandle.name.toLowerCase() === 'загрузки') {
+                        // Silently treat as if user didn't select a folder
+                        pathInput.value = 'Downloads';
+                        selectedDirHandle = null;
+                    } else {
+                        selectedDirHandle = dirHandle;
+                        pathInput.value = dirHandle.name;
+                    }
+                } catch (e) {
+                    // User cancelled - do nothing
+                    console.log('Folder selection cancelled');
+                }
+            } else {
+                alert('Folder selection is not supported in your browser. Files will download to your default Downloads folder.');
+            }
+        });
+
+        // Confirm export
+        confirmBtn.addEventListener('click', async () => {
+            const prefix = prefixInput.value.trim() || 'pages';
+
             try {
                 const pages = this.pageManager.pages.map(p => {
                     return {
@@ -567,9 +635,15 @@ export class App {
                 });
 
                 console.log('Exporting', pages.length, 'pages with', this.frames.length, 'frames');
-                const results = await Exporter.export(pages, this.frames);
-                Exporter.download(results);
+
+                // Pass prefix to export
+                const results = await Exporter.export(pages, this.frames, prefix);
+
+                // Pass dirHandle to download (will be null if using Downloads)
+                await Exporter.download(results, selectedDirHandle);
+
                 console.log('Export complete');
+                closeModal();
             } catch (error) {
                 console.error('Export error:', error);
                 alert('Export failed: ' + error.message);

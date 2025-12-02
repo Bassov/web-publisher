@@ -68,10 +68,23 @@ export class Workspace {
         const scaleY = availableHeight / totalHeight;
         const scale = Math.min(scaleX, scaleY, 1); // Don't zoom in beyond 1:1
 
-        // Center the pages
+        // PageManager positions pages with first page centered at (0, 0)
+        // First page starts at x = -(firstPageWidth/2)
+        // Last page ends at approximately x = totalWidth - (firstPageWidth/2)
+        // So the center of all pages is at x = (totalWidth - firstPageWidth) / 2 - firstPageWidth/2
+        // Simplifying: x = totalWidth/2 - firstPageWidth/2
+        // And y = 0 (pages are vertically centered at 0)
+        const firstPageWidth = pageManager.getPageSettings(0).width;
+        const pagesCenterX = (totalWidth - firstPageWidth) / 2;
+        const pagesCenterY = 0;
+
+        // Position viewport so pages center appears at screen center
+        // Account for media library panel at bottom (~150px height)
+        // Shift pages up by ~75px to better center them in visible area
+        const mediaLibraryOffset = 75; // Half of media library height
         this.state.scale = scale;
-        this.state.x = containerWidth / 2;
-        this.state.y = containerHeight / 2;
+        this.state.x = containerWidth / 2 - pagesCenterX * scale;
+        this.state.y = (containerHeight / 2 - mediaLibraryOffset) - pagesCenterY * scale;
 
         this.updateTransform();
     }

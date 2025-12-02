@@ -9,6 +9,7 @@ export class Frame {
         this.element.style.height = `${height}px`;
 
         this.element.style.height = `${height}px`;
+        this.element.style.willChange = 'transform'; // Optimize for resize/move
 
         // Create clipping mask for content
         this.mask = document.createElement('div');
@@ -94,11 +95,15 @@ export class Frame {
 
         // Fallback: get scale from viewport if not provided (for backwards compatibility)
         if (workspaceScale === undefined) {
-            const viewport = this.element.parentElement;
-            if (!viewport) return;
-            const style = window.getComputedStyle(viewport);
-            const matrix = new WebKitCSSMatrix(style.transform);
-            workspaceScale = matrix.a || 1;
+            if (this.app && this.app.workspace) {
+                workspaceScale = this.app.workspace.state.scale;
+            } else {
+                const viewport = this.element.parentElement;
+                if (!viewport) return;
+                const style = window.getComputedStyle(viewport);
+                const matrix = new WebKitCSSMatrix(style.transform);
+                workspaceScale = matrix.a || 1;
+            }
         }
 
         // Calculate inverse scale for handles
@@ -268,11 +273,14 @@ export class Frame {
                 this.app.pushState('swap_frame_image');
             }
 
-            // Swap: Replace the library image with the current frame image
+            // Swap or Remove:
             if (this.content && this.content.src && this.app && this.app.mediaLibrary) {
+                // If frame has content, swap it back to library
                 console.log('Swapping library image at position:', mediaData.id);
-                // Use swapImage to replace the dragged image's position with the current frame image
                 this.app.mediaLibrary.swapImage(mediaData.id, this.content.src, this.content);
+            } else if (this.app && this.app.mediaLibrary) {
+                // If frame is empty, just remove from library
+                this.app.mediaLibrary.removeImage(mediaData.id);
             }
 
             // Reset content position to center before setting new image
@@ -540,9 +548,15 @@ export class Frame {
         }
 
         const viewport = this.element.parentElement;
-        const style = window.getComputedStyle(viewport);
-        const matrix = new WebKitCSSMatrix(style.transform);
-        const scale = matrix.a || 1;
+        // OPTIMIZATION: Use cached workspace scale if available to avoid getComputedStyle
+        let scale = 1;
+        if (this.app && this.app.workspace) {
+            scale = this.app.workspace.state.scale;
+        } else {
+            const style = window.getComputedStyle(viewport);
+            const matrix = new WebKitCSSMatrix(style.transform);
+            scale = matrix.a || 1;
+        }
 
         // Determine anchor point (opposite corner from handle)
         let anchorX, anchorY;
@@ -665,7 +679,7 @@ export class Frame {
             this.state.y = newY;
             this.state.width = newWidth;
             this.state.height = newHeight;
-            this.updateTransform();
+            this.updateTransform(scale); // Pass scale to avoid re-calculation
 
             // REAL-TIME CONTENT ADJUSTMENT
             if (hasContent) {
@@ -1115,7 +1129,7 @@ export class Frame {
         this.cachedContentHandles = null;
     }
 
-    updateTransform() {
+    updateTransform(scale) {
         this.element.style.left = `${this.state.x}px`;
         this.element.style.top = `${this.state.y}px`;
         this.element.style.width = `${this.state.width}px`;
@@ -1123,7 +1137,7 @@ export class Frame {
 
         // Update handle scale when frame transform changes
         if (this.handlesRendered || this.contentHandlesRendered) {
-            this.updateHandleScale();
+            this.updateHandleScale(scale);
         }
     }
 

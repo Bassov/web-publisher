@@ -195,31 +195,7 @@ body {
 /* Old button styles removed - updated styles are defined below at line 622 */
 
 /* Secondary/Ghost Button (e.g. Add Images) */
-#btn-add-image {
-    background: transparent;
-    color: var(--text-primary);
-    border: 1px solid var(--panel-border);
-    padding: 7px 14px;
-    border-radius: 999px;
-    font-weight: 500;
-    font-size: 13px;
-    cursor: pointer;
-    transition: all 0.2s ease;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-}
-
-#btn-add-image:hover {
-    background: rgba(255, 255, 255, 0.05);
-    border-color: var(--text-secondary);
-}
-
-#btn-add-image img {
-    filter: invert(1);
-    /* Make black icon white if needed, or use SVG */
-    opacity: 0.8;
-}
+/* Old #btn-add-image styles removed - now uses .btn-icon class defined below */
 
 .btn-icon svg {
     transition: transform 0.3s ease;
@@ -262,8 +238,7 @@ body {
     position: absolute;
     top: 16px;
     right: 16px;
-    bottom: calc(16px + var(--media-panel-height) + 16px);
-    /* Stop above media library */
+    /* Removed bottom constraint - height now based on content */
     width: var(--sidebar-width);
     background: var(--panel-bg);
     backdrop-filter: var(--glass-blur);
@@ -275,6 +250,8 @@ body {
     transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.3s ease;
     display: flex;
     flex-direction: column;
+    max-height: calc(100vh - 32px - var(--media-panel-height) - 32px);
+    /* Account for margins and media panel */
 
     /* Hidden by default */
     transform: translateX(calc(100% + 32px));
@@ -306,6 +283,23 @@ body {
     display: flex;
     flex-direction: column;
     overflow: hidden;
+}
+
+.panel {
+    background: var(--panel-bg);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius);
+    padding: 20px;
+    box-shadow: 0 4px 24px rgba(0, 0, 0, 0.3);
+    color: var(--text-color);
+    overflow-y: auto;
+    /* Removed fixed height, now adapts to content */
+    min-height: 200px;
+    /* Minimum height */
+    max-height: calc(100vh - 40px);
+    /* Maximum height with margin */
 }
 
 @keyframes slideUp {
@@ -722,6 +716,123 @@ body.drag-over::after {
 
 .close-btn:hover {
     color: white;
+}
+
+.modal-body {
+    padding: 20px 0;
+}
+
+.modal-body p {
+    color: var(--text-secondary);
+    line-height: 1.6;
+    margin: 0;
+}
+
+.modal-footer {
+    display: flex;
+    justify-content: flex-end;
+    gap: 12px;
+    padding-top: 20px;
+    border-top: 1px solid var(--border-color);
+}
+
+.form-group {
+    margin-bottom: 20px;
+}
+
+.form-group:last-child {
+    margin-bottom: 0;
+}
+
+.form-group label {
+    display: block;
+    color: var(--text-primary);
+    font-size: 13px;
+    font-weight: 500;
+    margin-bottom: 8px;
+}
+
+.form-group input[type="text"] {
+    width: 100%;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid var(--border-color);
+    color: var(--text-primary);
+    padding: 10px 12px;
+    border-radius: 6px;
+    font-size: 14px;
+    transition: all 0.2s ease;
+}
+
+.form-group input[type="text"]:focus {
+    outline: none;
+    border-color: var(--accent-color);
+    background: rgba(255, 255, 255, 0.08);
+}
+
+.path-input-group {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+}
+
+.path-input-group input {
+    flex: 1;
+    cursor: default;
+}
+
+.path-input-group button {
+    width: 40px;
+    height: 40px;
+    padding: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.path-input-group button svg {
+    flex-shrink: 0;
+}
+
+.help-text {
+    display: block;
+    color: var(--text-secondary);
+    font-size: 12px;
+    margin-top: 6px;
+}
+
+.btn-secondary {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid var(--border-color);
+    color: var(--text-primary);
+    padding: 10px 16px;
+    border-radius: 6px;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.btn-secondary:hover {
+    background: rgba(255, 255, 255, 0.1);
+    border-color: var(--text-secondary);
+}
+
+.btn-danger {
+    background: #dc2626;
+    border: none;
+    color: white;
+    padding: 10px 16px;
+    border-radius: 6px;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.btn-danger:hover {
+    background: #b91c1c;
+    box-shadow: 0 0 12px rgba(220, 38, 38, 0.4);
 }
 
 .shortcuts-list {

@@ -74,7 +74,10 @@ export class MediaLibrary {
         this.MAX_CONCURRENT = 2; // Process 2 images at a time to ensure responsiveness
 
         // Event listeners
-        document.getElementById('btn-clear-library').addEventListener('click', () => this.clearAll());
+        document.getElementById('btn-clear-library').addEventListener('click', () => this.showDeleteModal());
+
+        // Initialize delete confirmation modal
+        this.initDeleteModal();
 
         // Connect global "Add Images" button to this file input
         const globalAddBtn = document.getElementById('btn-add-image');
@@ -533,23 +536,6 @@ export class MediaLibrary {
         this.countEl.textContent = `${this.images.length} image${this.images.length !== 1 ? 's' : ''}`;
     }
 
-    clearAll() {
-        if (this.images.length === 0) return;
-
-        if (confirm('Clear all images from library?')) {
-            // Revoke object URLs
-            this.images.forEach(img => {
-                URL.revokeObjectURL(img.objectURL);
-                if (img.thumbnail) URL.revokeObjectURL(img.thumbnail);
-            });
-
-            this.images = [];
-            this.grid.innerHTML = '';
-            this.loadQueue = [];
-            this.updateCount();
-        }
-    }
-
     removeImage(id) {
         const index = this.images.findIndex(img => img.id === id);
         if (index === -1) return;
@@ -575,5 +561,60 @@ export class MediaLibrary {
 
     getImage(id) {
         return this.images.find(img => img.id === id);
+    }
+
+    initDeleteModal() {
+        const modal = document.getElementById('delete-modal');
+        const closeBtn = document.getElementById('btn-close-delete-modal');
+        const cancelBtn = document.getElementById('btn-cancel-delete');
+        const confirmBtn = document.getElementById('btn-confirm-delete');
+
+        if (!modal || !closeBtn || !cancelBtn || !confirmBtn) {
+            console.error('Delete modal elements not found');
+            return;
+        }
+
+        // Close modal handlers
+        const closeModal = () => {
+            modal.classList.add('hidden');
+        };
+
+        closeBtn.addEventListener('click', closeModal);
+        cancelBtn.addEventListener('click', closeModal);
+
+        // Close on click outside
+        modal.addEventListener('click', (e) => {
+            if (e.target === modal) {
+                closeModal();
+            }
+        });
+
+        // Confirm delete
+        confirmBtn.addEventListener('click', () => {
+            this.clearAll();
+            closeModal();
+        });
+    }
+
+    showDeleteModal() {
+        if (this.images.length === 0) return;
+
+        const modal = document.getElementById('delete-modal');
+        if (modal) {
+            modal.classList.remove('hidden');
+        }
+    }
+
+    clearAll() {
+        // Revoke object URLs
+        this.images.forEach(img => {
+            URL.revokeObjectURL(img.objectURL);
+            if (img.thumbnail) URL.revokeObjectURL(img.thumbnail);
+        });
+
+        this.images = [];
+        this.grid.innerHTML = '';
+        this.loadQueue = [];
+        this.updateCount();
     }
 }
